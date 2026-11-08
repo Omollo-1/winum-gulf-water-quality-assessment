@@ -1,0 +1,13 @@
+earthengine-api
+geemap
+geopandas
+rasterio
+scikit-learn
+scipy
+statsmodels
+pandas
+numpy
+matplotlib
+requests
+openpyxl
+tenacity

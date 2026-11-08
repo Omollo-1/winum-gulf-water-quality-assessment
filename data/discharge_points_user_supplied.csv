@@ -1,0 +1,11 @@
+name,country,city,facility_type,receiving_waterbody,lon,lat,source_status
+Kisat Conventional WWTP,Kenya,Kisumu,Municipal wastewater treatment plant (KIWASCO),River Kisat to Kisumu Bay,34.75388,-0.08410,user-provided; unverified
+River Kisat Mouth (Outfall),Kenya,Kisumu,Urban river and treated/industrial effluent outfall,Kisumu Bay (Winam Gulf),34.72700,-0.10000,user-provided; unverified
+Nyalenda Stabilization Ponds,Kenya,Kisumu,Wastewater oxidation lagoons (KIWASCO),River Auji to Kisumu Bay (Dunga),34.77554,-0.11684,user-provided; unverified
+Homa Bay Sewage Treatment Area,Kenya,Homa Bay,Municipal sewage treatment and shoreline discharge,Homa Bay (Winam Gulf),34.46152,-0.52001,user-provided; unverified
+Oluch River Mouth,Kenya,Homa Bay,Agricultural/catchment river discharge point,Winam Gulf,34.49200,-0.45200,user-provided; unverified
+Awach River Mouth,Kenya,Kendu Bay,Catchment river discharge point,Nyakach Bay (Winam Gulf),34.64400,-0.34400,user-provided; unverified
+Bugolobi (Nakivubo) WWTP,Uganda,Kampala,Municipal wastewater treatment plant (NWSC),Nakivubo Wetland to Inner Murchison Bay,32.60750,0.31833,user-provided; outside Winam Gulf
+Nakivubo Channel Outfall,Uganda,Kampala,Primary urban storm/wastewater drainage channel,Inner Murchison Bay,32.63333,0.30000,user-provided; outside Winam Gulf
+Kirinya Wastewater Treatment Plant,Uganda,Jinja,Municipal wastewater stabilization ponds (NWSC),Kirinya Wetland to Napoleon Gulf,33.21727,0.42329,user-provided; outside Winam Gulf
+Butuja (Ilemela) Stabilization Ponds,Tanzania,Mwanza,Municipal wastewater stabilization ponds (MWAUWASA),Lake Victoria (Mwanza shoreline),32.90000,-2.51667,user-provided; outside Winam Gulf
