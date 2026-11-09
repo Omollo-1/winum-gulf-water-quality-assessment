@@ -196,3 +196,37 @@ def test_hyacinth_candidate_map_requires_explicit_thresholds():
             month=date(2024, 6, 1),
             layer="hyacinth_candidate",
         )
+
+
+def test_threshold_validation_rejects_non_finite_or_out_of_range_ndvi():
+    service = FakeEarthEngineService()
+    with TestClient(create_app(service)) as client:
+        response = client.get(
+            "/api/v1/timeseries",
+            params={
+                "start": "2024-06-01",
+                "end": "2024-06-30",
+                "ndvi_threshold": float("nan"),
+                "fai_threshold": 0.02,
+            },
+        )
+    assert response.status_code == 422
+    assert isinstance(response.json()["detail"], list)
+
+    with pytest.raises(ValueError, match="NDVI threshold must be finite and between -1 and 1"):
+        render_gee_map(
+            api_url="http://testserver",
+            month=date(2024, 6, 1),
+            layer="ndci",
+            ndvi_threshold=2.0,
+            fai_threshold=0.02,
+        )
+
+    with pytest.raises(ValueError, match="FAI threshold must be finite"):
+        fetch_gee_timeseries(
+            api_url="http://testserver",
+            start=date(2024, 6, 1),
+            end=date(2024, 6, 30),
+            ndvi_threshold=0.5,
+            fai_threshold=float("nan"),
+        )

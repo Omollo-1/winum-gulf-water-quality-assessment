@@ -24,6 +24,12 @@ def _validate_floating_thresholds(
             status_code=422,
             detail="Supply both locally calibrated NDVI and FAI thresholds, or neither.",
         )
+    if ndvi_threshold is not None:
+        if not math.isfinite(ndvi_threshold) or not -1 <= ndvi_threshold <= 1:
+            raise HTTPException(
+                status_code=422,
+                detail="NDVI threshold must be finite and between -1 and 1.",
+            )
     if fai_threshold is not None and not math.isfinite(fai_threshold):
         raise HTTPException(status_code=422, detail="FAI threshold must be finite.")
 

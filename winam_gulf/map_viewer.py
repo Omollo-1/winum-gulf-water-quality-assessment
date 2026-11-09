@@ -2,12 +2,26 @@
 
 from __future__ import annotations
 
+import math
 from datetime import date, datetime
 from typing import Any
 
 import requests
 from ipyleaflet import LayersControl, Map, TileLayer, basemaps
 from ipyleaflet.leaflet import LegendControl
+
+
+def _validate_thresholds(
+    ndvi_threshold: float | None,
+    fai_threshold: float | None,
+) -> None:
+    if (ndvi_threshold is None) != (fai_threshold is None):
+        raise ValueError("Supply both locally calibrated NDVI and FAI thresholds, or neither.")
+    if ndvi_threshold is not None:
+        if not math.isfinite(ndvi_threshold) or not -1 <= ndvi_threshold <= 1:
+            raise ValueError("NDVI threshold must be finite and between -1 and 1.")
+        if not math.isfinite(fai_threshold):
+            raise ValueError("FAI threshold must be finite.")
 
 
 LAYER_LEGENDS = {
@@ -36,8 +50,7 @@ def render_gee_map(
         raise ValueError(
             "Supply locally calibrated NDVI and FAI thresholds before rendering candidate vegetation."
         )
-    if (ndvi_threshold is None) != (fai_threshold is None):
-        raise ValueError("Supply both locally calibrated NDVI and FAI thresholds, or neither.")
+    _validate_thresholds(ndvi_threshold, fai_threshold)
 
     parameters: dict[str, str | float] = {"month": month.strftime("%Y-%m-%d")}
     if ndvi_threshold is not None:
@@ -104,8 +117,7 @@ def fetch_gee_timeseries(
 ) -> dict[str, Any]:
     """Fetch GEE-backed monthly summaries from the running FastAPI service."""
     endpoint = f"{api_url.rstrip('/')}/api/v1/timeseries"
-    if (ndvi_threshold is None) != (fai_threshold is None):
-        raise ValueError("Supply both locally calibrated NDVI and FAI thresholds, or neither.")
+    _validate_thresholds(ndvi_threshold, fai_threshold)
     parameters: dict[str, str | float] = {
         "start": start.isoformat(),
         "end": end.isoformat(),
