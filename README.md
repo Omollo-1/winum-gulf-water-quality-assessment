@@ -113,18 +113,21 @@ The notebook writes local outputs to the current working directory:
 - `winam_gulf_vs_reference_timeseries.csv` — comparison with the reference site, when that section runs
 - `winam_gulf_timeseries.png` and `winam_gulf_mean_vs_max.png` — time-series plots
 - `winam_gulf_monthly_report.pdf` — a one-page monitoring brief
+- `outputs/roi_exports/` — local PNG map previews clipped to the derived Gulf ROI
 - `winam_gulf_dashboard.html`, `winam_gulf_dashboard.png`, and `winam_gulf_summary.json` — standalone visual and machine-readable results
 - `bloom_forecast.png` — observed NDCI with the seasonal historical reference, when data requirements are met
 - `winam_gulf_bloom_frequency` — Earth Engine Drive export of the per-pixel bloom-proxy frequency raster
 - `winam_gulf_discharge_distance_decay.csv` and `distance_decay.png` — generated only when verified discharge-point data is supplied
 
-The final notebook cell starts asynchronous Google Drive exports for the latest-month index image and the bloom-frequency raster in the `WinamGulf_WQ_Outputs` folder. Track completion in the Earth Engine Tasks page; the notebook does not wait for these exports to finish.
+The final notebook cell displays the latest NDCI and bloom-frequency maps clipped to the derived Gulf ROI, downloads PNG previews to `outputs/roi_exports/`, and starts asynchronous GeoTIFF exports of the latest NDCI/TSS/CDOM composite and bloom-frequency raster to the `WinamGulf_WQ_Outputs` Google Drive folder. Authenticate Earth Engine and run the notebook through the final export cell; preview downloads and Drive exports require a successful Earth Engine session. Track the GeoTIFF tasks in the Earth Engine Tasks page and download the completed files from Google Drive.
 
-The notebook also builds a standalone `winam_gulf_dashboard.html`, an overview chart at `winam_gulf_dashboard.png`, and a machine-readable `winam_gulf_summary.json`. The dashboard includes observed proxy time series, monthly scene counts, recent records, the trend-test summary, and an optional seasonal reference. The seasonal reference uses same-calendar-month historical medians and a descriptive percentile range; it is not a validated prediction. The trend test uses actual elapsed time for Sen's slope and reports that its p-value is not adjusted for serial correlation.
+The notebook also builds a standalone `winam_gulf_dashboard.html`, an overview chart at `winam_gulf_dashboard.png`, and a machine-readable `winam_gulf_summary.json`. The dashboard includes observed proxy time series, monthly scene counts, recent records, the trend-test summary, and an optional seasonal reference. The seasonal reference uses same-calendar-month historical medians and a descriptive percentile range; it is not a validated prediction. Trend inference uses the month-deseasonalized Hamed–Rao Mann–Kendall test when a complete monthly record is available; if months are missing, the notebook reports a descriptive slope but withholds a significance p-value rather than interpolating.
+
+The one-page PDF includes a provisional **REVIEW** status and a short Kiswahili note; it is not a field-validated water-safety alert.
 
 ## Separate science extensions
 
-The notebook stays focused on Earth Engine extraction. Analysis utilities, input templates, and protocols for correction-product comparisons, floating-vegetation screening, field validation, driver association, flow-path distance, and held-out forecast skill are in [docs/science_extensions.md](docs/science_extensions.md). They require actual corrected scenes and verified field/driver data; no sample values are presented as Winam Gulf results.
+The notebook stays focused on Earth Engine extraction. Analysis utilities, input templates, and protocols for correction-product comparisons, hyacinth-mask calibration, zonal/shoreline summaries, threshold sensitivity, field validation, daily rainfall lags, trend robustness, driver association, flow-path distance, and held-out forecast skill are in [docs/science_extensions.md](docs/science_extensions.md). They require actual corrected scenes and verified field/driver data; no sample values are presented as Winam Gulf results.
 
 Run the offline regression tests with:
 
@@ -137,6 +140,9 @@ Examples of separate analyses:
 ```powershell
 python -m winam_gulf.cli corrections --input path\to\correction_monthly.csv --output-dir outputs\corrections
 python -m winam_gulf.cli forecast --input winam_gulf_water_quality_timeseries.csv --output-dir outputs\forecast
+python -m winam_gulf.cli threshold-sensitivity --input path\to\bloom_pixel_monthly.csv --output-dir outputs\bloom-sensitivity --hotspot-frequency 0.25
+python -m winam_gulf.cli event-rainfall --input path\to\daily_rainfall_and_overpasses.csv --output-dir outputs\event-rainfall
+python -m winam_gulf.cli calibrate-hyacinth --input path\to\labeled_hyacinth_polygons.csv --output-dir outputs\hyacinth-calibration
 ```
 
 ## Interpretation notes

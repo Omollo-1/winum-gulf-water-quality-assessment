@@ -15,6 +15,13 @@ from .drivers import train_driver_attribution
 from .field_validation import evaluate_field_calibration
 from .flowpath import analyze_flowpath_distance
 from .forecast import backtest_seasonal_forecast
+from .robustness import (
+    bloom_threshold_sensitivity,
+    calibrate_hyacinth_thresholds,
+    event_rainfall_lags,
+    hamed_rao_mann_kendall,
+    summarize_gulf_zones,
+)
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -36,7 +43,18 @@ def _write_flowpath_plot(data: pd.DataFrame, output_path: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="analysis", required=True)
-    for name in ("corrections", "field-validation", "forecast", "drivers", "flowpath"):
+    for name in (
+        "corrections",
+        "field-validation",
+        "forecast",
+        "drivers",
+        "flowpath",
+        "threshold-sensitivity",
+        "event-rainfall",
+        "zonal-summary",
+        "trend",
+        "calibrate-hyacinth",
+    ):
         command = subparsers.add_parser(name)
         command.add_argument("--input", type=Path, required=True, help="Input CSV file.")
         command.add_argument("--output-dir", type=Path, required=True, help="Directory for result files.")
@@ -47,6 +65,20 @@ def main() -> None:
     subparsers.choices["forecast"].add_argument("--holdout-end", default="2024-12-01")
     subparsers.choices["drivers"].add_argument("--target", default="bloom_metric")
     subparsers.choices["drivers"].add_argument("--shap", action="store_true")
+    subparsers.choices["threshold-sensitivity"].add_argument(
+        "--hotspot-frequency",
+        type=float,
+        required=True,
+        help="Minimum monthly exceedance frequency used to define a hotspot (0-1).",
+    )
+    subparsers.choices["zonal-summary"].add_argument(
+        "--shoreline-buffer-m",
+        type=float,
+        default=80.0,
+        help="Exclude pixels within this distance of the shoreline (default: 80 m).",
+    )
+    subparsers.choices["trend"].add_argument("--target", default="ndci")
+    subparsers.choices["trend"].add_argument("--month-column", default="month")
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
     data = pd.read_csv(args.input)
@@ -93,6 +125,38 @@ def main() -> None:
         result = analyze_flowpath_distance(data)
         _write_json(args.output_dir / "flowpath_metrics.json", result)
         _write_flowpath_plot(data, args.output_dir / "flowpath_distance.png")
+    elif args.analysis == "threshold-sensitivity":
+        frequencies, stability = bloom_threshold_sensitivity(
+            data, hotspot_frequency=args.hotspot_frequency
+        )
+        frequencies.to_csv(args.output_dir / "bloom_threshold_frequencies.csv", index=False)
+        stability.to_csv(args.output_dir / "bloom_hotspot_stability.csv", index=False)
+    elif args.analysis == "event-rainfall":
+        matchups, summary = event_rainfall_lags(data)
+        matchups.to_csv(args.output_dir / "event_rainfall_matchups.csv", index=False)
+        summary.to_csv(args.output_dir / "event_rainfall_lag_summary.csv", index=False)
+    elif args.analysis == "zonal-summary":
+        summarize_gulf_zones(data, shoreline_buffer_m=args.shoreline_buffer_m).to_csv(
+            args.output_dir / "zonal_monthly_summary.csv", index=False
+        )
+    elif args.analysis == "trend":
+        if args.month_column not in data or args.target not in data:
+            raise ValueError(
+                f"Trend input must contain {args.month_column!r} and {args.target!r} columns."
+            )
+        series = pd.Series(
+            pd.to_numeric(data[args.target], errors="raise").to_numpy(),
+            index=pd.DatetimeIndex(pd.to_datetime(data[args.month_column], errors="raise")),
+        )
+        _write_json(
+            args.output_dir / "hamed_rao_trend_metrics.json",
+            hamed_rao_mann_kendall(series),
+        )
+    elif args.analysis == "calibrate-hyacinth":
+        _write_json(
+            args.output_dir / "hyacinth_threshold_calibration.json",
+            calibrate_hyacinth_thresholds(data),
+        )
     print(f"Results saved under {args.output_dir.resolve()}")
 
 

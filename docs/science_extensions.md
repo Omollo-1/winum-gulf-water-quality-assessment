@@ -64,11 +64,58 @@ remains available for side-by-side comparison. When both thresholds are absent,
 no mats are removed; when only one is supplied, the API rejects the request.
 
 For defensible separation, label representative floating-hyacinth mats, open
-water, and algal-bloom pixels across seasons; tune thresholds on training
+water, and turbid-water pixels across seasons; tune thresholds on training
 locations/dates and report errors on separate dates or locations. Export the
 candidate mask as a provisional layer, retain the original NDCI layer, and
 compare NDCI trends with and without candidate mats. FAI/NDVI alone cannot
 guarantee that floating vegetation is water hyacinth.
+
+After hand-labeling, prepare per-polygon NDVI/FAI samples using
+`templates/hyacinth_label_samples_template.csv`. The calibrator reduces each
+polygon to median indices, chooses thresholds on training polygons, and reports
+independent held-out metrics; it requires `hyacinth`, `open_water`, and
+`turbid_water` labels. Aim for 50–100 polygons spread across dates/locations;
+the tool flags smaller datasets and does not apply its output to the live API:
+
+```powershell
+python -m winam_gulf.cli calibrate-hyacinth --input path\to\labeled_hyacinth_polygons.csv --output-dir outputs\hyacinth-calibration
+```
+
+Only transfer the thresholds to API/map requests after reviewing the holdout
+false positives/negatives and validating on independent dates or locations.
+
+The threshold-sensitivity utility expects one NDCI value per pixel-month in
+`templates/bloom_pixel_monthly_template.csv`. It reports per-pixel exceedance
+frequency for 0.10, 0.15, 0.20, 0.25, and 0.30 and compares hotspot membership
+with the 0.15 reference using Jaccard overlap. The hotspot-frequency cutoff is
+an explicit input because it is a separate choice from the NDCI bloom cutoff:
+
+```powershell
+python -m winam_gulf.cli threshold-sensitivity --input path\to\bloom_pixel_monthly.csv --output-dir outputs\bloom-sensitivity --hotspot-frequency 0.25
+```
+
+Use the same cloud, water, spatial-resolution, and floating-vegetation masks
+for every cutoff. This calculation tests threshold sensitivity only; it does
+not validate the 0.15 cutoff or label floating mats.
+
+## Zone summaries and shoreline exclusion
+
+The zonal utility summarizes existing pixel/sample observations separately for
+Kisumu Bay, the inner gulf, Homa Bay, Kendu Bay, and the outer gulf. Inputs must
+already carry these exact zone labels and `distance_to_shore_m`, calculated
+from documented zone polygons and shoreline geometry in a projected CRS. The
+default 80 m exclusion is within the recommended 60–100 m range; override it
+only when the analysis protocol justifies another distance. The tool rejects
+missing zones or distances and does not invent polygon boundaries:
+
+```powershell
+python -m winam_gulf.cli zonal-summary --input path\to\zonal_observations.csv --output-dir outputs\zones --shoreline-buffer-m 80
+```
+
+Use `templates/zonal_observations_template.csv`. Each input row is an
+observation with a zone label and shoreline distance; the output contains
+monthly per-zone medians and valid pixel counts. The tool does not generate
+the five authoritative polygons or perform satellite sampling itself.
 
 Sentinel-3 OLCI has different spatial resolution, spectral response, and revisit
 characteristics from Sentinel-2. The OLCI index functions are spectral
@@ -187,6 +234,39 @@ python -m winam_gulf.cli forecast --input winam_gulf_water_quality_timeseries.cs
 Treat the candidate as unsupported unless it beats climatology on predeclared
 holdout metrics. Once results are inspected, do not retune on 2023–2024 and
 continue to call it an untouched test set.
+
+## Trend inference with serial-correlation correction
+
+The Hamed–Rao Mann–Kendall utility first removes the median seasonal cycle by
+calendar month, estimates the Sen slope on the resulting anomalies, and corrects
+the Mann–Kendall variance using significant autocorrelation in detrended ranks.
+It requires at least 24 finite observations with one value for every
+consecutive month. It deliberately
+rejects gaps rather than interpolating months without usable satellite data:
+
+```powershell
+python -m winam_gulf.cli trend --input path\to\complete_monthly_ndci.csv --output-dir outputs\trend --target ndci --month-column month
+```
+
+Use only a complete series created under a declared observation protocol. If
+valid monthly composites are missing, report that an adjusted trend test was
+not run; do not fill gaps just to satisfy the regular-series assumption.
+
+## Event-based rainfall association
+
+Prepare a daily rainfall series with NDCI/TSS proxy values populated only on
+satellite overpass dates, following
+`templates/event_rainfall_daily_template.csv`. For each overpass, the analysis
+matches 7-, 14-, 21-, and 28-day antecedent rainfall totals (the overpass day is
+excluded) and reports Pearson/Spearman associations and matchup counts:
+
+```powershell
+python -m winam_gulf.cli event-rainfall --input path\to\daily_rainfall_and_overpasses.csv --output-dir outputs\event-rainfall
+```
+
+Rainfall coverage must be daily and have no missing days within matched
+antecedent windows. Treat lag correlations as exploratory associations, not
+causal evidence; event timing, flow/inflow data, and confounders still matter.
 
 ## Operational alerts and publication
 
