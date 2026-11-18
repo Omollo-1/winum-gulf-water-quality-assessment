@@ -176,7 +176,22 @@ def test_ipyleaflet_viewer_uses_map_url_returned_by_api(monkeypatch):
 
     assert water_map.center == [-0.15, 34.65]
     assert any("earthengine.googleapis.com" in layer.url for layer in water_map.layers)
-    assert any("LegendControl" in control.__class__.__name__ for control in water_map.controls)
+    control_names = {control.__class__.__name__ for control in water_map.controls}
+    assert "LegendControl" in control_names
+    assert "ScaleControl" in control_names
+    widget_controls = [
+        control for control in water_map.controls
+        if control.__class__.__name__ == "WidgetControl"
+    ]
+    assert any(
+        "Winam Gulf - Floating Algae Index (FAI) - 2024-06" in control.widget.value
+        for control in widget_controls
+    )
+    assert any(
+        'aria-label="North arrow"' in control.widget.value
+        for control in widget_controls
+    )
+    assert water_map.layout.border == "2px solid #334155"
     assert service.requested_layers[-1][1] == "fai"
 
     payload = fetch_gee_timeseries(
